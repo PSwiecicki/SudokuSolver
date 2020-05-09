@@ -16,7 +16,7 @@ namespace SudokuSolver
         {
             string output = "|";
             foreach (var field in RowFields)
-                output += field.Value.ToString() + "|";
+                output += (field.IsValueSet ? field.Value.ToString()  : string.Join(' ', field.Options.ToArray()))+'|';
             return output;
         }
 
