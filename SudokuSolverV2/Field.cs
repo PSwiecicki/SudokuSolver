@@ -6,9 +6,9 @@ namespace SudokuSolverV2
     internal class Field
     {
         private int _value;
-        private readonly SudokuRectangle rectangle;
-        private readonly SudokuRow row;
-        private readonly SudokuColumn column;
+        public readonly SudokuRectangle rectangle;
+        public readonly SudokuRow row;
+        public readonly SudokuColumn column;
 
         public Field(int sudokuSize, SudokuRow row, SudokuColumn col, SudokuRectangle rec)
         {
