@@ -11,7 +11,7 @@ namespace SudokuSolverV2
             int a = Convert.ToInt32(Console.ReadLine());
             Console.WriteLine("Jaką wysokość ma mały prostokąt?");
             int b = Convert.ToInt32(Console.ReadLine());
-            Console.WriteLine($"Podaj wszystkie {a * b} rzędów. Cyfry oddziel spacją, a w miejsce pustych pul wpisz 0");
+            Console.WriteLine($"Podaj wszystkie {a * b} rzędów. Cyfry oddziel spacją, a w miejsce pustych pól wpisz 0.");
             Sudoku sudoku = new Sudoku(a, b);
             sudoku.InsertData();
             sudoku.Solve();
