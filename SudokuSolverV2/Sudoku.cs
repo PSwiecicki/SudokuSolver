@@ -7,8 +7,8 @@ namespace SudokuSolverV2
 {
     internal class Sudoku
     {
-        private readonly int _high;
         private readonly int _width;
+        private readonly int _high;
         private readonly int _size;
         public SudokuRow[] Rows { get; set; }
         public SudokuColumn[] Columns { get; set; } 
@@ -35,8 +35,8 @@ namespace SudokuSolverV2
                     Rectangles[(i / b) * b + j / a].container.Add(field);
                 }
             }
-            _high = a;
-            _width = b;
+            _width = a;
+            _high = b;
         }
 
         public void InsertData()
@@ -59,7 +59,7 @@ namespace SudokuSolverV2
                 //    };
         }
 
-        void OneVslueOptionInConteiner(SudokuSmallContainer[] containersTable)
+        void OneValueOptionInConteiner(SudokuSmallContainer[] containersTable)
         {
             foreach (var item in containersTable)
             {
@@ -67,20 +67,23 @@ namespace SudokuSolverV2
                 {
                     int numCounter;
                     Field optionalField = null;
-                    foreach(var number in item.valuesToSet)
+                    for(int i = 1; i < _size; i++)
                     {
-                        numCounter = 0;
-                        foreach (var field in item.container)
+                        if (item.valuesToSet.Contains(i))
                         {
-                            if (field.IsValueSet == false && field.Optionalities.Contains(number))
+                            numCounter = 0;
+                            foreach (var field in item.container)
                             {
-                                numCounter++;
-                                optionalField = field;
+                                if (field.IsValueSet == false && field.Optionalities.Contains(i))
+                                {
+                                    numCounter++;
+                                    optionalField = field;
+                                }
                             }
-                        }
-                        if (numCounter == 1)
-                        {
-                            optionalField.Value = number;
+                            if (numCounter == 1)
+                            {
+                                optionalField.Value = i;
+                            }
                         }
                     }
                 }
@@ -115,7 +118,7 @@ namespace SudokuSolverV2
                             if (field.IsValueSet == false && field.Optionalities.Contains(value))
                                 fieldsIndex.Add(Rectangles[i].container.IndexOf(field));
                         }
-                        if(fieldsIndex.Count >= 2 && fieldsIndex.Count <= _width)
+                        if(fieldsIndex.Count >= 2 && fieldsIndex.Count <= _high)
                         {
                             var zeroIndexField = Rectangles[i].container[fieldsIndex[0]];
                             var detectedRow = zeroIndexField.row;
@@ -135,12 +138,13 @@ namespace SudokuSolverV2
                                     if (field.IsValueSet == false && field.rectangle != zeroIndexField.rectangle)
                                     {
                                         field.Optionalities.Remove(value);
+                                        field.row.wasChanged = true;
                                     }
 
                                 }
                             }
                         }
-                        if (fieldsIndex.Count >= 2 && fieldsIndex.Count <= _high)
+                        if (fieldsIndex.Count >= 2 && fieldsIndex.Count <= _width)
                         {
                             var zeroIndexField = Rectangles[i].container[fieldsIndex[0]];
                             var detectedColumn = zeroIndexField.column;
@@ -160,6 +164,7 @@ namespace SudokuSolverV2
                                     if (field.IsValueSet == false && field.rectangle != zeroIndexField.rectangle)
                                     {
                                         field.Optionalities.Remove(value);
+                                        field.row.wasChanged = true;
                                     }
 
                                 }
@@ -186,7 +191,7 @@ namespace SudokuSolverV2
                                 fieldsIndex.Add(Rows[i].container.IndexOf(field));
                             }
                         }
-                        if ( 2 <= fieldsIndex.Count && fieldsIndex.Count <= _width)
+                        if ( 2 <= fieldsIndex.Count && fieldsIndex.Count <= _high)
                         {
                             var zeroIndexField = Rows[i].container[fieldsIndex[0]];
                             var detectedRectangle = zeroIndexField.rectangle;
@@ -204,7 +209,10 @@ namespace SudokuSolverV2
                                 foreach (var field in detectedRectangle.container)
                                 {
                                     if (field.IsValueSet == false && field.row != zeroIndexField.row)
+                                    {
                                         field.Optionalities.Remove(value);
+                                        field.row.wasChanged = true;
+                                    }
                                 }
                             }
                         }
@@ -229,7 +237,7 @@ namespace SudokuSolverV2
                                 fieldsIndex.Add(Columns[i].container.IndexOf(field));
                             }
                         }
-                        if (2 <= fieldsIndex.Count && fieldsIndex.Count <= _high)
+                        if (2 <= fieldsIndex.Count && fieldsIndex.Count <= _width)
                         {
                             var zeroIndexField = Columns[i].container[fieldsIndex[0]];
                             var detectedRectangle = zeroIndexField.rectangle;
@@ -247,7 +255,10 @@ namespace SudokuSolverV2
                                 foreach (var field in detectedRectangle.container)
                                 {
                                     if (field.IsValueSet == false && field.column != zeroIndexField.column)
+                                    {
                                         field.Optionalities.Remove(value);
+                                        field.row.wasChanged = true;
+                                    }
                                 }
                             }
                         }
@@ -294,7 +305,10 @@ namespace SudokuSolverV2
                                 for (int i = 0; i < _size; i++)
                                 {
                                     if (!smallContainer.container[i].IsValueSet && (smallContainer.container[i] != checkingField && !possibleFieldsIndex.Contains(i)))
+                                    {
                                         smallContainer.container[i].Optionalities.Remove(option);
+                                        smallContainer.container[i].row.wasChanged = true;
+                                    }
                                 }
                             }
                         }
@@ -303,9 +317,61 @@ namespace SudokuSolverV2
             }
         }
 
-        void Solve()
+        public void Solve()
         {
+            bool sudokuSolved = false;
+            
+            while (!sudokuSolved)
+            {
+                bool isChanged = false;
+                sudokuSolved = true;
+                foreach (var row in Rows)
+                {
+                    row.wasChanged = false;
+                }
+                RemoveOptionalities();
+                SetValues();
+                foreach (var row in Rows)
+                {
+                    isChanged = isChanged | row.wasChanged;
+                    sudokuSolved = sudokuSolved & row.isDone;
+                }
+                if (!sudokuSolved && !isChanged)
+                {
+                    Console.WriteLine("Nie można rozwiązać tego sudoku(jeszcze nie ;)).");
+                    break;
+                }
+            }
+            
 
+        }
+
+        void RemoveOptionalities()
+        {
+            FewOptionalityInColumn();
+            FewOptionalityInRow();
+            FewOptionalityInSquare();
+            sameFewOptionalitiesInContainer(Rows);
+            sameFewOptionalitiesInContainer(Columns);
+            sameFewOptionalitiesInContainer(Rectangles);
+        }
+
+        void SetValues()
+        {
+            OneValueOptionInConteiner(Rectangles);
+            OneValueOptionInConteiner(Rows);
+            OneValueOptionInConteiner(Columns);
+            OneValueOptionInField();
+        }
+
+        public override string ToString()
+        {
+            string s = "";
+            foreach(var row in Rows)
+            {
+                s += row.ToString() + "\n";
+            }
+            return s;
         }
 
     }

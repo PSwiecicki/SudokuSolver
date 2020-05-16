@@ -5,6 +5,7 @@ namespace SudokuSolverV2
 {
     internal class SudokuRow : SudokuSmallContainer
     {
+        public bool wasChanged { get; set; }
         public SudokuRow(int size)
         {
             container = new List<Field>();
@@ -51,7 +52,7 @@ namespace SudokuSolverV2
         {
             string output = "|";
             foreach (var field in container)
-                output += (field.IsValueSet ? field.Value.ToString() : /*string.Join(' ', field.Options.ToArray()))*/"0") + '|';
+                output += (field.IsValueSet ? field.Value.ToString() : string.Join(' ', field.Optionalities.ToArray())) + '|';
             return output;
         }
     }

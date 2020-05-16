@@ -12,6 +12,9 @@ namespace SudokuSolverV2
 
         public Field(int sudokuSize, SudokuRow row, SudokuColumn col, SudokuRectangle rec)
         {
+            this.row = row;
+            this.rectangle = rec;
+            this.column = col;
             this.Value = 0;
             this.IsValueSet = false;
             Optionalities = new List<int>();
@@ -19,9 +22,6 @@ namespace SudokuSolverV2
             {
                 this.Optionalities.Add(i);
             }
-            this.row = row;
-            this.rectangle = rec;
-            this.column = col;
         }
         public bool IsValueSet { get; set; }
         public List<int> Optionalities { get; set; }
@@ -38,6 +38,7 @@ namespace SudokuSolverV2
                 Optionalities = null;
                 IsValueSet = true;
                 _value = value;
+                row.wasChanged = true;
             }
         }
 
