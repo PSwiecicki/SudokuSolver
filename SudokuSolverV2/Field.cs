@@ -5,48 +5,49 @@ namespace SudokuSolverV2
 {
     internal class Field
     {
-        private int _value;
-        public readonly SudokuRectangle rectangle;
-        public readonly SudokuRow row;
-        public readonly SudokuColumn column;
+        private int _Value;
+        public readonly SudokuRectangle Rectangle;
+        public readonly SudokuRow Row;
+        public readonly SudokuColumn Column;
+        public bool IsValueSet { get; set; }
+        public List<int> Options { get; set; }
 
-        public Field(int sudokuSize, SudokuRow row, SudokuColumn col, SudokuRectangle rec)
+        public Field(int size, SudokuRow row, SudokuColumn column, SudokuRectangle rectangle)
         {
-            this.row = row;
-            this.rectangle = rec;
-            this.column = col;
+            this.Row = row;
+            this.Rectangle = rectangle;
+            this.Column = column;
             this.Value = 0;
             this.IsValueSet = false;
-            Optionalities = new List<int>();
-            for(int i = 1; i <= sudokuSize; i++)
+            Options = new List<int>();
+            for(int i = 1; i <= size; i++)
             {
-                this.Optionalities.Add(i);
+                this.Options.Add(i);
             }
         }
-        public bool IsValueSet { get; set; }
-        public List<int> Optionalities { get; set; }
+
         public int Value
         {
             get
             {
-                return _value;
+                return _Value;
             }
             set
             {
-                if (value != _value)
-                    ClearOptionalities(value);
-                Optionalities = null;
+                if (value != _Value)
+                    ClearOptions(value);
+                Options = null;
                 IsValueSet = true;
-                _value = value;
-                row.wasChanged = true;
+                _Value = value;
+                Row.WasChanged = true;
             }
         }
 
-        private void ClearOptionalities(int value)
+        private void ClearOptions(int value)
         {
-            row.clearOptionalities(value);
-            column.clearOptionalities(value);
-            rectangle.clearOptionalities(value);
+            Row.ClearOptions(value);
+            Column.ClearOptions(value);
+            Rectangle.ClearOptions(value);
         }
     }
 }

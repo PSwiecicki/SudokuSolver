@@ -10,6 +10,7 @@ namespace SudokuSolverV2
         private readonly int _width;
         private readonly int _high;
         private readonly int _size;
+        private bool Error { get; set; }
         public SudokuRow[] Rows { get; set; }
         public SudokuColumn[] Columns { get; set; } 
         public SudokuRectangle[] Rectangles { get; set; } 
@@ -29,60 +30,93 @@ namespace SudokuSolverV2
             {
                 for (int j = 0; j < _size; j++)
                 {
-                    Field field = new Field(_size, Rows[i], Columns[j], Rectangles[(i / b) * b + j / a]);
-                    Rows[i].container.Add(field);
-                    Columns[j].container.Add(field);
-                    Rectangles[(i / b) * b + j / a].container.Add(field);
+                    Field pole = new Field(_size, Rows[i], Columns[j], Rectangles[(i / b) * b + j / a]);
+                    Rows[i].Container.Add(pole);
+                    Columns[j].Container.Add(pole);
+                    Rectangles[(i / b) * b + j / a].Container.Add(pole);
                 }
             }
             _width = a;
             _high = b;
         }
 
+        public Sudoku(Sudoku sudokuCopy, Field fieldToChange, int Value)
+        {
+            _size = sudokuCopy._size;
+            _high = sudokuCopy._high;
+            _width = sudokuCopy._width;
+            Rows = new SudokuRow[_size];
+            Columns = new SudokuColumn[_size];
+            Rectangles = new SudokuRectangle[_size];
+            for (int i = 0; i < _size; i++)
+            {
+                Rows[i] = new SudokuRow(_size);
+                Columns[i] = new SudokuColumn(_size);
+                Rectangles[i] = new SudokuRectangle(_size);
+            }
+            for (int i = 0; i < _size; i++)
+            {
+                for (int j = 0; j < _size; j++)
+                {
+                    Field field = new Field(_size, Rows[i], Columns[j], Rectangles[(i / _high) * _high + j / _width]);
+                    Rows[i].Container.Add(field);
+                    Columns[j].Container.Add(field);
+                    Rectangles[(i / _high) * _high + j / _width].Container.Add(field);
+                }
+            }
+            InsertData(sudokuCopy.Rows);
+            for(int i = 0; i < sudokuCopy.Rows.Length; i++)
+            {
+                for(int j = 0;  j < sudokuCopy.Rows[i].Container.Count; j++)
+                {
+                    if(fieldToChange == sudokuCopy.Rows[i].Container[j])
+                    {
+                        Rows[i].Container[j].Value = Value;
+                    }
+                }
+            }
+        }
         public void InsertData()
         {
-            string[] input = new string[Rows.Length];
-            for(int i = 0; i < input.Length;)
+            for(int i = 0; i < Rows.Length;)
             {
-                if (Rows[i].inputRow(Console.ReadLine()))
+                if (Rows[i].SetValueInRow(Console.ReadLine()))
                     i++;
             }
-                //{ "0 0 0 6 0 0 9 2 1",
-                //  "2 0 9 0 0 0 6 0 0",
-                //  "0 5 0 0 0 0 0 0 0",
-                //  "8 7 0 0 4 9 0 1 0",
-                //  "0 0 4 0 0 0 0 0 0",
-                //  "0 0 0 0 0 8 3 0 0",
-                //  "0 0 0 0 0 0 0 8 0",
-                //  "6 0 0 5 1 4 0 0 7",
-                //  "0 0 0 7 0 0 0 0 0"
-                //    };
         }
 
-        void OneValueOptionInConteiner(SudokuSmallContainer[] containersTable)
+        private void InsertData(SudokuRow[] rows)
         {
-            foreach (var item in containersTable)
+            for (int i = 0; i < Rows.Length; i++)
             {
-                if (!item.isDone)
+                Rows[i].SetValueInRow(rows[i]);
+            }
+        }
+
+        void OneValueInContainer(SudokuContainer[] containerTable)
+        {
+            foreach (var container in containerTable)
+            {
+                if (!container.isDone)
                 {
-                    int numCounter;
-                    Field optionalField = null;
+                    int counter;
+                    Field fieldWithPosspibleValue = null;
                     for(int i = 1; i < _size; i++)
                     {
-                        if (item.valuesToSet.Contains(i))
+                        if (container.ValueToSet.Contains(i))
                         {
-                            numCounter = 0;
-                            foreach (var field in item.container)
+                            counter = 0;
+                            foreach (var field in container.Container)
                             {
-                                if (field.IsValueSet == false && field.Optionalities.Contains(i))
+                                if (field.IsValueSet == false && field.Options.Contains(i))
                                 {
-                                    numCounter++;
-                                    optionalField = field;
+                                    counter++;
+                                    fieldWithPosspibleValue = field;
                                 }
                             }
-                            if (numCounter == 1)
+                            if (counter == 1)
                             {
-                                optionalField.Value = i;
+                                fieldWithPosspibleValue.Value = i;
                             }
                         }
                     }
@@ -90,81 +124,85 @@ namespace SudokuSolverV2
             }
         }
 
-        void OneValueOptionInField()
+        void OneOptionInField()
         {
             foreach (var row in Rows)
             {
-                foreach (var field in row.container)
+                foreach (var field in row.Container)
                 {
-                    if (!field.IsValueSet && field.Optionalities.Count == 1)
+                    if (!field.IsValueSet && field.Options.Count == 1)
                     {
-                        field.Value = field.Optionalities[0];
+                        field.Value = field.Options[0];
+                    }
+                    if(!field.IsValueSet && field.Options.Count == 0)
+                    {
+                        this.Error = true;
                     }
                 }
             }
         }
 
-        void FewOptionalityInSquare()
+        void FewSameOptionalitiesInRectangle()
         {
             for (int i = 0; i < _size; i++)
             {
                 if (!Rectangles[i].isDone)
                 {
-                    foreach( var value in Rectangles[i].valuesToSet)
+                    foreach( var value in Rectangles[i].ValueToSet)
                     {
-                        List<int> fieldsIndex = new List<int>();
-                        foreach (var field in Rectangles[i].container)
+                        List<int> fieldIndexes = new List<int>();
+                        foreach (var field in Rectangles[i].Container)
                         {
-                            if (field.IsValueSet == false && field.Optionalities.Contains(value))
-                                fieldsIndex.Add(Rectangles[i].container.IndexOf(field));
+                            if (field.IsValueSet == false && field.Options.Contains(value))
+                                fieldIndexes.Add(Rectangles[i].Container.IndexOf(field));
                         }
-                        if(fieldsIndex.Count >= 2 && fieldsIndex.Count <= _high)
+                        if(fieldIndexes.Count >= 2 && fieldIndexes.Count <= _high)
                         {
-                            var zeroIndexField = Rectangles[i].container[fieldsIndex[0]];
-                            var detectedRow = zeroIndexField.row;
-                            bool isRow = true;
-                            foreach(var index in fieldsIndex)
+                            var firstIndexField = Rectangles[i].Container[fieldIndexes[0]];
+                            var detectedRow = firstIndexField.Row;
+                            bool isItRow = true;
+                            foreach(var index in fieldIndexes)
                             {
-                                if(Rectangles[i].container[index].row != detectedRow)
+                                if(Rectangles[i].Container[index].Row != detectedRow)
                                 {
-                                    isRow = false;
+                                    isItRow = false;
                                     break;
                                 }
                             }
-                            if (isRow)
+                            if (isItRow)
                             {
-                                foreach (var field in detectedRow.container)
+                                foreach (var field in detectedRow.Container)
                                 {
-                                    if (field.IsValueSet == false && field.rectangle != zeroIndexField.rectangle)
+                                    if (field.IsValueSet == false && field.Rectangle != firstIndexField.Rectangle && field.Options.Contains(value))
                                     {
-                                        field.Optionalities.Remove(value);
-                                        field.row.wasChanged = true;
+                                        field.Options.Remove(value);
+                                        field.Row.WasChanged = true;
                                     }
 
                                 }
                             }
                         }
-                        if (fieldsIndex.Count >= 2 && fieldsIndex.Count <= _width)
+                        if (fieldIndexes.Count >= 2 && fieldIndexes.Count <= _width)
                         {
-                            var zeroIndexField = Rectangles[i].container[fieldsIndex[0]];
-                            var detectedColumn = zeroIndexField.column;
-                            bool isColumn = true;
-                            foreach (var index in fieldsIndex)
+                            var firstIndexField = Rectangles[i].Container[fieldIndexes[0]];
+                            var detectedColumn = firstIndexField.Column;
+                            bool isItColumn = true;
+                            foreach (var index in fieldIndexes)
                             {
-                                if (Rectangles[i].container[index].column != detectedColumn)
+                                if (Rectangles[i].Container[index].Column != detectedColumn)
                                 {
-                                    isColumn = false;
+                                    isItColumn = false;
                                     break;
                                 }
                             }
-                            if (isColumn)
+                            if (isItColumn)
                             {
-                                foreach (var field in detectedColumn.container)
+                                foreach (var field in detectedColumn.Container)
                                 {
-                                    if (field.IsValueSet == false && field.rectangle != zeroIndexField.rectangle)
+                                    if (field.IsValueSet == false && field.Rectangle != firstIndexField.Rectangle && field.Options.Contains(value))
                                     {
-                                        field.Optionalities.Remove(value);
-                                        field.row.wasChanged = true;
+                                        field.Options.Remove(value);
+                                        field.Row.WasChanged = true;
                                     }
 
                                 }
@@ -175,43 +213,43 @@ namespace SudokuSolverV2
             }
         }
 
-        void FewOptionalityInRow()
+        void SameOptionalitiesInRow()
         {
             for (int i = 0; i < _size; i++)
             {
                 if (!Rows[i].isDone)
                 {
-                    foreach (var value in Rows[i].valuesToSet)
+                    foreach (var value in Rows[i].ValueToSet)
                     {
-                        List<int> fieldsIndex = new List<int>();
-                        foreach (var field in Rows[i].container)
+                        List<int> fieldIndexes = new List<int>();
+                        foreach (var field in Rows[i].Container)
                         {
-                            if (field.IsValueSet == false && field.Optionalities.Contains(value))
+                            if (field.IsValueSet == false && field.Options.Contains(value))
                             {
-                                fieldsIndex.Add(Rows[i].container.IndexOf(field));
+                                fieldIndexes.Add(Rows[i].Container.IndexOf(field));
                             }
                         }
-                        if ( 2 <= fieldsIndex.Count && fieldsIndex.Count <= _high)
+                        if ( 2 <= fieldIndexes.Count && fieldIndexes.Count <= _high)
                         {
-                            var zeroIndexField = Rows[i].container[fieldsIndex[0]];
-                            var detectedRectangle = zeroIndexField.rectangle;
-                            bool isDetect = true;
-                            foreach (var index in fieldsIndex)
+                            var firstIndexField = Rows[i].Container[fieldIndexes[0]];
+                            var detectedRectangle = firstIndexField.Rectangle;
+                            bool isItRectangle = true;
+                            foreach (var index in fieldIndexes)
                             {
-                                if (Rows[i].container[index].rectangle != zeroIndexField.rectangle)
+                                if (Rows[i].Container[index].Rectangle != firstIndexField.Rectangle)
                                 {
-                                    isDetect = false;
+                                    isItRectangle = false;
                                     break;
                                 }
                             }
-                            if (isDetect)
+                            if (isItRectangle)
                             {
-                                foreach (var field in detectedRectangle.container)
+                                foreach (var field in detectedRectangle.Container)
                                 {
-                                    if (field.IsValueSet == false && field.row != zeroIndexField.row)
+                                    if (field.IsValueSet == false && field.Row != firstIndexField.Row && field.Options.Contains(value))
                                     {
-                                        field.Optionalities.Remove(value);
-                                        field.row.wasChanged = true;
+                                        field.Options.Remove(value);
+                                        field.Row.WasChanged = true;
                                     }
                                 }
                             }
@@ -221,43 +259,43 @@ namespace SudokuSolverV2
             }
         }
 
-        void FewOptionalityInColumn()
+        void SameOptionaliteiesInColumn()
         {
             for (int i = 0; i < _size; i++)
             {
                 if (!Columns[i].isDone)
                 {
-                    foreach (var value in Columns[i].valuesToSet)
+                    foreach (var value in Columns[i].ValueToSet)
                     {
-                        List<int> fieldsIndex = new List<int>();
-                        foreach (var field in Columns[i].container)
+                        List<int> fieldIndexes = new List<int>();
+                        foreach (var field in Columns[i].Container)
                         {
-                            if (field.IsValueSet == false && field.Optionalities.Contains(value))
+                            if (field.IsValueSet == false && field.Options.Contains(value))
                             {
-                                fieldsIndex.Add(Columns[i].container.IndexOf(field));
+                                fieldIndexes.Add(Columns[i].Container.IndexOf(field));
                             }
                         }
-                        if (2 <= fieldsIndex.Count && fieldsIndex.Count <= _width)
+                        if (2 <= fieldIndexes.Count && fieldIndexes.Count <= _width)
                         {
-                            var zeroIndexField = Columns[i].container[fieldsIndex[0]];
-                            var detectedRectangle = zeroIndexField.rectangle;
-                            bool isDetect = true;
-                            foreach (var index in fieldsIndex)
+                            var firstIndexField = Columns[i].Container[fieldIndexes[0]];
+                            var detectedRectangle = firstIndexField.Rectangle;
+                            bool isItRectangle = true;
+                            foreach (var index in fieldIndexes)
                             {
-                                if (Columns[i].container[index].rectangle != zeroIndexField.rectangle)
+                                if (Columns[i].Container[index].Rectangle != firstIndexField.Rectangle)
                                 {
-                                    isDetect = false;
+                                    isItRectangle = false;
                                     break;
                                 }
                             }
-                            if (isDetect)
+                            if (isItRectangle)
                             {
-                                foreach (var field in detectedRectangle.container)
+                                foreach (var field in detectedRectangle.Container)
                                 {
-                                    if (field.IsValueSet == false && field.column != zeroIndexField.column)
+                                    if (field.IsValueSet == false && field.Column != firstIndexField.Column && field.Options.Contains(value))
                                     {
-                                        field.Optionalities.Remove(value);
-                                        field.row.wasChanged = true;
+                                        field.Options.Remove(value);
+                                        field.Row.WasChanged = true;
                                     }
                                 }
                             }
@@ -267,47 +305,47 @@ namespace SudokuSolverV2
             }
         }
 
-        void sameFewOptionalitiesInContainer(SudokuSmallContainer[] smallContainers)
+        void SameOptionalitiesInContainer(SudokuContainer[] containerTablr)
         {
-            foreach (var smallContainer in smallContainers)
+            foreach (var container in containerTablr)
             {
-                if (!smallContainer.isDone)
+                if (!container.isDone)
                 {
-                    foreach (var checkingField in smallContainer.container)
+                    foreach (var checkingField in container.Container)
                     {
-                        List<int> possibleFieldsIndex = new List<int>();
+                        List<int> possibleFieldIndexes = new List<int>();
                         if (checkingField.IsValueSet == false)
                         {
-                            foreach (var posibleField in smallContainer.container)
+                            foreach (var possibleField in container.Container)
                             {
-                                if (checkingField != posibleField && posibleField.IsValueSet == false)
+                                if (checkingField != possibleField && possibleField.IsValueSet == false)
                                 {
-                                    bool haveAll = true;
-                                    foreach (var option in posibleField.Optionalities)
+                                    bool gotAllOptionalities = true;
+                                    foreach (var option in possibleField.Options)
                                     {
-                                        if (!checkingField.Optionalities.Contains(option))
+                                        if (!checkingField.Options.Contains(option))
                                         {
-                                            haveAll = false;
+                                            gotAllOptionalities = false;
                                             break;
                                         }
                                     }
-                                    if (haveAll)
+                                    if (gotAllOptionalities)
                                     {
-                                        possibleFieldsIndex.Add(smallContainer.container.IndexOf(posibleField));
+                                        possibleFieldIndexes.Add(container.Container.IndexOf(possibleField));
                                     }
                                 }
                             }
                         }
-                        if (!checkingField.IsValueSet && (checkingField.Optionalities.Count == (possibleFieldsIndex.Count + 1)))
+                        if (!checkingField.IsValueSet && (checkingField.Options.Count == (possibleFieldIndexes.Count + 1)))
                         {
-                            foreach (var option in checkingField.Optionalities)
+                            foreach (var option in checkingField.Options)
                             {
                                 for (int i = 0; i < _size; i++)
                                 {
-                                    if (!smallContainer.container[i].IsValueSet && (smallContainer.container[i] != checkingField && !possibleFieldsIndex.Contains(i)))
+                                    if (!container.Container[i].IsValueSet && container.Container[i].Options.Contains(option) && (container.Container[i] != checkingField && !possibleFieldIndexes.Contains(i)))
                                     {
-                                        smallContainer.container[i].Optionalities.Remove(option);
-                                        smallContainer.container[i].row.wasChanged = true;
+                                        container.Container[i].Options.Remove(option);
+                                        container.Container[i].Row.WasChanged = true;
                                     }
                                 }
                             }
@@ -317,51 +355,158 @@ namespace SudokuSolverV2
             }
         }
 
-        public void Solve()
+        void SameOptionalitiesFromTwoFieldsInContainer(SudokuContainer[] containerTable)
         {
-            bool sudokuSolved = false;
-            
-            while (!sudokuSolved)
+            foreach (var container in containerTable)
             {
-                bool isChanged = false;
-                sudokuSolved = true;
+                if (!container.isDone)
+                {
+                    foreach (var checkingField1 in container.Container)
+                    {
+                        foreach (var checkingField2 in container.Container)
+                        {
+                            List<int> possibleFieldIndexes = new List<int>();
+                            HashSet<int> possibleValues = new HashSet<int>();
+                            if (checkingField1 != checkingField2 && checkingField1.IsValueSet == false && checkingField2.IsValueSet == false)
+                            {
+                                foreach (var Value in checkingField1.Options)
+                                    possibleValues.Add(Value);
+                                foreach (var Value in checkingField2.Options)
+                                    possibleValues.Add(Value);
+                                foreach (var possibleField in container.Container)
+                                {
+                                    if (checkingField2 != possibleField && checkingField1 != possibleField && possibleField.IsValueSet == false)
+                                    {
+                                        bool gotAllOptionalities = true;
+                                        foreach (var option in possibleField.Options)
+                                        {
+                                            if (!possibleValues.Contains(option))
+                                            {
+                                                gotAllOptionalities = false;
+                                                break;
+                                            }
+                                        }
+                                        if (gotAllOptionalities)
+                                        {
+                                            possibleFieldIndexes.Add(container.Container.IndexOf(possibleField));
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (!checkingField2.IsValueSet && !checkingField1.IsValueSet && (possibleValues.Count == (possibleFieldIndexes.Count + 2)))
+                            {
+                                foreach (var option in possibleValues)
+                                {
+                                    for (int i = 0; i < _size; i++)
+                                    {
+                                        if (!container.Container[i].IsValueSet && container.Container[i].Options.Contains(option) && (container.Container[i] != checkingField2 && container.Container[i] != checkingField1 && !possibleFieldIndexes.Contains(i)))
+                                        {
+                                            container.Container[i].Options.Remove(option);
+                                            container.Container[i].Row.WasChanged = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        public bool Solve()
+        {
+            bool isSudokuSolved = false;
+            
+            while (!isSudokuSolved)
+            {
+                bool wasChanged = false;
+                isSudokuSolved = true;
                 foreach (var row in Rows)
                 {
-                    row.wasChanged = false;
+                    row.WasChanged = false;
                 }
                 RemoveOptionalities();
+                if (this.Error)
+                    return false;
                 SetValues();
                 foreach (var row in Rows)
                 {
-                    isChanged = isChanged | row.wasChanged;
-                    sudokuSolved = sudokuSolved & row.isDone;
+                    wasChanged |= row.WasChanged;
+                    isSudokuSolved &= row.isDone;
                 }
-                if (!sudokuSolved && !isChanged)
+                if (!isSudokuSolved && !wasChanged)
                 {
-                    Console.WriteLine("Nie można rozwiązać tego sudoku(jeszcze nie ;)).");
-                    break;
+                    Stack<Sudoku> sudokuPossibleSolves = new Stack<Sudoku>();
+                    bool isFieldChosen = false;
+                    foreach (var row in Rows)
+                    {
+                        if (!row.isDone)
+                        {
+                            foreach (var field in row.Container)
+                            {
+                                if (!field.IsValueSet)
+                                {
+                                    foreach(var value in field.Options)
+                                    {
+                                        sudokuPossibleSolves.Push(new Sudoku(this, field, value));
+                                    }
+                                    isFieldChosen = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isFieldChosen)
+                            break;
+                    }
+                    Sudoku sudoku = sudokuPossibleSolves.Pop();
+                    bool correctSudoku;
+                    do
+                    {
+                        correctSudoku = sudoku.Solve();
+                        if(sudoku.Error)
+                        {
+                            sudoku = sudokuPossibleSolves.Pop();
+                        }
+                    }
+                    while (!correctSudoku);
+                   for(int i = 0; i < Rows.Length; i++)
+                    {
+                        for(int j = 0; j < Rows[i].Container.Count; j++)
+                        {
+                            if(!Rows[i].Container[j].IsValueSet)
+                            {
+                                Rows[i].Container[j].Value = sudoku.Rows[i].Container[j].Value;
+                            }
+                        }
+                    }
                 }
             }
+            return true;
             
 
         }
 
         void RemoveOptionalities()
         {
-            FewOptionalityInColumn();
-            FewOptionalityInRow();
-            FewOptionalityInSquare();
-            sameFewOptionalitiesInContainer(Rows);
-            sameFewOptionalitiesInContainer(Columns);
-            sameFewOptionalitiesInContainer(Rectangles);
+            SameOptionaliteiesInColumn();
+            SameOptionalitiesInRow();
+            FewSameOptionalitiesInRectangle();
+            SameOptionalitiesInContainer(Rows);
+            SameOptionalitiesInContainer(Columns);
+            SameOptionalitiesInContainer(Rectangles);
+            SameOptionalitiesFromTwoFieldsInContainer(Rows);
+            SameOptionalitiesFromTwoFieldsInContainer(Columns);
+            SameOptionalitiesFromTwoFieldsInContainer(Rectangles);
         }
 
         void SetValues()
         {
-            OneValueOptionInConteiner(Rectangles);
-            OneValueOptionInConteiner(Rows);
-            OneValueOptionInConteiner(Columns);
-            OneValueOptionInField();
+            OneValueInContainer(Rectangles);
+            OneValueInContainer(Rows);
+            OneValueInContainer(Columns);
+            OneOptionInField();
         }
 
         public override string ToString()

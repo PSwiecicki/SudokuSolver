@@ -2,14 +2,14 @@
 
 namespace SudokuSolverV2
 {
-    internal class SudokuRectangle : SudokuSmallContainer
+    internal class SudokuRectangle : SudokuContainer
     {
         public SudokuRectangle(int size)
         {
-            container = new List<Field>();
-            valuesToSet = new List<int>();
+            Container = new List<Field>();
+            ValueToSet = new List<int>();
             for (int i = 1; i <= size; i++)
-                valuesToSet.Add(i);
+                ValueToSet.Add(i);
             isDone = false;
         }
     }

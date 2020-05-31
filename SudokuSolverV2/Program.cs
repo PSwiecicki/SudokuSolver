@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace SudokuSolverV2
 {
     class Program
     {
         static void Main()
-        {
+        {   //
+
             Console.WriteLine("Witam w aplikacji do rozwiązywania Sudoku!");
             Console.WriteLine("Jaką szerokość ma mały prostokąt?");
             int a = Convert.ToInt32(Console.ReadLine());

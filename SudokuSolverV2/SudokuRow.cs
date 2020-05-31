@@ -3,56 +3,66 @@ using System.Collections.Generic;
 
 namespace SudokuSolverV2
 {
-    internal class SudokuRow : SudokuSmallContainer
+    internal class SudokuRow : SudokuContainer
     {
-        public bool wasChanged { get; set; }
+        public bool WasChanged { get; set; }
         public SudokuRow(int size)
         {
-            container = new List<Field>();
-            valuesToSet = new List<int>();
+            Container = new List<Field>();
+            ValueToSet = new List<int>();
             for (int i = 1; i <= size; i++)
-                valuesToSet.Add(i);
+                ValueToSet.Add(i);
             isDone = false;
         }
 
-        public bool inputRow(string input)
+        public bool SetValueInRow(string valueInString)
         {
-            string[] inputValues = input.Split(" ");
+            string[] valueInStringTab = valueInString.Split(" ");
 
-            if (!(inputValues.Length == container.Count))
+            if (!(valueInStringTab.Length == Container.Count))
             {
                 Console.WriteLine("Zła liczba parametrów. ");
                 return false;
             }
-            for(int i = 0; i < inputValues.Length; i++)
+            for(int i = 0; i < valueInStringTab.Length; i++)
             {
-                int value;
-                if (!Int32.TryParse(inputValues[i], out value))
+                if (!int.TryParse(valueInStringTab[i], out int value))
                 {
                     Console.WriteLine("Podano parametr nie będący liczbą");
                     return false;
                 }
-                if (value < 0 && value > container.Count)
+                if (value < 0 && value > Container.Count)
                 {
-                    Console.WriteLine($"Wartość nie mieście się w przedziale od 0 do {container.Count}");
+                    Console.WriteLine($"Wartość nie mieście się w przedziale od 0 do {Container.Count}");
                     return false;
                 }
                 if (value == 0)
                     continue;
-                if (!container[i].Optionalities.Contains(value) )
+                if (!Container[i].Options.Contains(value) )
                 {
                     Console.WriteLine($"Wartość {value} nie może zostać wpisana w wyznaczone miejsce.");
                     return false;
                 }
-                container[i].Value = value;
+                Container[i].Value = value;
             }
             return true;
         }
+
+        public void SetValueInRow(SudokuRow row)
+        {
+            for(int i = 0; i < Container.Count; i++)
+            {
+                if(row.Container[i].Value != 0)
+                    Container[i].Value = row.Container[i].Value;
+            }
+
+        }
+
         public override string ToString()
         {
             string output = "|";
-            foreach (var field in container)
-                output += (field.IsValueSet ? field.Value.ToString() : string.Join(' ', field.Optionalities.ToArray())) + '|';
+            foreach (var vield in Container)
+                output += (vield.IsValueSet ? vield.Value.ToString() : string.Join(' ', vield.Options.ToArray())) + '|';
             return output;
         }
     }
